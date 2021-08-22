@@ -1,0 +1,4 @@
+---
+RulesToSuppress:
+- id: W28
+  reason: Names must match Terraform configuration exactly
