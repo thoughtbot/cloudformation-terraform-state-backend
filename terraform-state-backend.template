@@ -135,7 +135,10 @@ Resources:
             - kms:GenerateDataKeyWithoutPlaintext
             Resource: !GetAtt KMSKey.Arn
         PolicyName: ManageTerraformState
-      RoleName: !Ref StateBucket
+      RoleName: !If
+      - GenerateNames
+      - !Sub "terraform-state-${AWS::AccountId}"
+      - !Ref Name
 
   StateBucket:
     Type: AWS::S3::Bucket
