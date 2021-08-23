@@ -38,6 +38,17 @@ Resources:
               "kms:ViaService":
               - !Sub "s3.${AWS::Region}.amazonaws.com"
               - !Sub "dynamodb.${AWS::Region}.amazonaws.com"
+        - Sid: AllowCloudTrail
+          Effect: Allow
+          Principal:
+            Service: cloudtrail.amazonaws.com
+          Action:
+          - kms:GenerateDataKey
+          Resource: "*"
+          Condition:
+            StringLike:
+              "kms:EncryptionContext:aws:cloudtrail:arn":
+              - !Sub "arn:aws:cloudtrail:*:${AWS::AccountId}:trail/*"
 
   KMSKeyAlias:
     Type: AWS::KMS::Alias
@@ -117,51 +128,6 @@ Resources:
         PolicyName: ManageTerraformState
       RoleName: !Ref Name
 
-  LogBucket:
-    Type: AWS::S3::Bucket
-    DeletionPolicy: Delete
-    UpdateReplacePolicy: Delete
-    Properties:
-      AccessControl: LogDeliveryWrite
-      PublicAccessBlockConfiguration:
-        BlockPublicAcls: true
-        BlockPublicPolicy: true
-        IgnorePublicAcls: true
-        RestrictPublicBuckets: true
-      BucketEncryption:
-        ServerSideEncryptionConfiguration:
-          - ServerSideEncryptionByDefault:
-              SSEAlgorithm: AES256
-    Metadata:
-      cfn_nag:
-        rules_to_suppress:
-          - id: W35
-            reason: A log bucket can't enable access logging
-
-  LogBucketPolicy:
-    Type: AWS::S3::BucketPolicy
-    DeletionPolicy: Delete
-    UpdateReplacePolicy: Delete
-    Properties:
-      Bucket: !Ref LogBucket
-      PolicyDocument:
-        Version: "2012-10-17"
-        Statement:
-        - Sid: EnableReadingAccessLogs
-          Effect: Allow
-          Principal:
-            AWS: !Sub "arn:aws:iam::${AWS::AccountId}:root"
-          Action: s3:GetObject
-          Resource: !Sub
-          - "${Arn}/*"
-          - Arn: !GetAtt LogBucket.Arn
-        - Sid: EnableListingAccessLogs
-          Effect: Allow
-          Principal:
-            AWS: !Sub "arn:aws:iam::${AWS::AccountId}:root"
-          Action: s3:ListBucket
-          Resource: !GetAtt LogBucket.Arn
-
   StateBucket:
     Type: AWS::S3::Bucket
     DeletionPolicy: Delete
@@ -174,8 +140,6 @@ Resources:
               SSEAlgorithm: aws:kms
               KMSMasterKeyID: !Ref KMSKey
       BucketName: !Ref Name
-      LoggingConfiguration:
-        DestinationBucketName: !Ref LogBucket
       PublicAccessBlockConfiguration:
         BlockPublicAcls: true
         BlockPublicPolicy: true
@@ -183,6 +147,11 @@ Resources:
         RestrictPublicBuckets: true
       VersioningConfiguration:
         Status: Enabled
+    Metadata:
+      cfn_nag:
+        rules_to_suppress:
+          - id: W35
+            reason: Access logs are managed via Cloudtrail
 
   StateBucketPolicy:
     Type: AWS::S3::BucketPolicy
@@ -203,6 +172,73 @@ Resources:
           Condition:
             StringNotEquals:
               "s3:x-amz-server-side-encryption-aws-kms-key-id": !Ref KMSKey
+
+  StateTrail:
+    Type: AWS::CloudTrail::Trail
+    DeletionPolicy: Delete
+    UpdateReplacePolicy: Delete
+    Properties:
+      EnableLogFileValidation: true
+      EventSelectors:
+      - DataResources:
+        - Type: AWS::S3::Object
+          Values:
+          - !Sub "arn:aws:s3:::${Name}/"
+        IncludeManagementEvents: false
+        ReadWriteType: All
+      IncludeGlobalServiceEvents: false
+      IsLogging: true
+      KMSKeyId: !GetAtt KMSKey.Arn
+      S3BucketName: !Ref TrailBucket
+
+  TrailBucket:
+    Type: AWS::S3::Bucket
+    DeletionPolicy: Delete
+    UpdateReplacePolicy: Delete
+    Properties:
+      AccessControl: Private
+      BucketEncryption:
+        ServerSideEncryptionConfiguration:
+          - ServerSideEncryptionByDefault:
+              SSEAlgorithm: aws:kms
+              KMSMasterKeyID: !Ref KMSKey
+      PublicAccessBlockConfiguration:
+        BlockPublicAcls: true
+        BlockPublicPolicy: true
+        IgnorePublicAcls: true
+        RestrictPublicBuckets: true
+    Metadata:
+      cfn_nag:
+        rules_to_suppress:
+          - id: W35
+            reason: This is a logging bucket
+
+  TrailBucketPolicy:
+    Type: AWS::S3::BucketPolicy
+    DeletionPolicy: Delete
+    UpdateReplacePolicy: Delete
+    Properties:
+      Bucket: !Ref TrailBucket
+      PolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+        - Sid: AllowCloudTrailACLCheck
+          Effect: Allow
+          Action:
+          - s3:GetBucketacl
+          Principal:
+            Service: cloudtrail.amazonaws.com
+          Resource: !GetAtt TrailBucket.Arn
+        - Sid: AllowCloudTrailWrite
+          Effect: Allow
+          Action:
+          - s3:PutObject
+          Principal:
+            Service: cloudtrail.amazonaws.com
+          Resource: !Sub "${TrailBucket.Arn}/*"
+          Condition:
+            StringEquals:
+              "s3:x-amz-acl": "bucket-owner-full-control"
 
 Outputs:
   KmsKeyAlias:

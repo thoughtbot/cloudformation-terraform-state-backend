@@ -10,7 +10,7 @@ Features:
 * Encrypts Terraform state using a dedicated KMS key.
 * Creates a dedicated IAM role with only the permissions needed to manage
   Terraform state.
-* Sets up S3 access logging for the state bucket.
+* Sets up access logging for the state bucket using CloudTrail.
 
 Parameters:
 
@@ -22,13 +22,16 @@ Resources:
 * __`KMSKeyAlias`__ (`AWS::KMS::Alias`): alias for the KMS key
 * __`LockTable`__ (`AWS::DynamoDB::Table`): DynamoDB table to lock Terraform
   state
-* __`LogBucket`__ (`AWS::S3::Bucket`): bucket for Terraform state access logs
-* __`LogBucketPolicy`__ (`AWS::S3::BucketPolicy`): policy to allow IAM users to
-  read access logs
 * __`Role`__ (`AWS::IAM::Role`): IAM role for managing Terraform state
 * __`StateBucket`__ (`AWS::S3::Bucket`): Bucket containing Terraform state
 * __`StateBucketPolicy`__ (`AWS::S3::BucketPolicy`): Policy requiring encryption
   for Terraform state
+* __`StateTrail`__ (`AWS::CloudTrail::Trail`): trail logging data events for
+  the Terraform state bucket
+* __`TrailBucket`__ (`AWS::S3::Bucket`): bucket for Terraform state Cloudtrail
+  logs
+* __`TrailBucketPolicy`__ (`AWS::S3::BucketPolicy`): policy to allow Cloudtrail
+  to write log entries
 
 Outputs:
 
