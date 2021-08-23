@@ -23,8 +23,8 @@ Resources:
 
   KMSKey:
     Type: AWS::KMS::Key
-    DeletionPolicy: Delete
-    UpdateReplacePolicy: Delete
+    DeletionPolicy: Retain
+    UpdateReplacePolicy: Retain
     Properties:
       Description: Terraform state backend
       EnableKeyRotation: true
@@ -73,8 +73,8 @@ Resources:
 
   LockTable:
     Type: AWS::DynamoDB::Table
-    DeletionPolicy: Delete
-    UpdateReplacePolicy: Delete
+    DeletionPolicy: Retain
+    UpdateReplacePolicy: Retain
     Properties:
       BillingMode: PAY_PER_REQUEST
       AttributeDefinitions:
@@ -148,8 +148,8 @@ Resources:
 
   StateBucket:
     Type: AWS::S3::Bucket
-    DeletionPolicy: Delete
-    UpdateReplacePolicy: Delete
+    DeletionPolicy: Retain
+    UpdateReplacePolicy: Retain
     Properties:
       AccessControl: Private
       BucketEncryption:
@@ -176,8 +176,8 @@ Resources:
 
   StateBucketPolicy:
     Type: AWS::S3::BucketPolicy
-    DeletionPolicy: Delete
-    UpdateReplacePolicy: Delete
+    DeletionPolicy: Retain
+    UpdateReplacePolicy: Retain
     Properties:
       Bucket: !Ref StateBucket
       PolicyDocument:
@@ -196,8 +196,8 @@ Resources:
 
   StateTrail:
     Type: AWS::CloudTrail::Trail
-    DeletionPolicy: Delete
-    UpdateReplacePolicy: Delete
+    DeletionPolicy: Retain
+    UpdateReplacePolicy: Retain
     Properties:
       EnableLogFileValidation: true
       EventSelectors:
@@ -214,8 +214,8 @@ Resources:
 
   TrailBucket:
     Type: AWS::S3::Bucket
-    DeletionPolicy: Delete
-    UpdateReplacePolicy: Delete
+    DeletionPolicy: Retain
+    UpdateReplacePolicy: Retain
     Properties:
       AccessControl: Private
       BucketEncryption:
@@ -236,8 +236,8 @@ Resources:
 
   TrailBucketPolicy:
     Type: AWS::S3::BucketPolicy
-    DeletionPolicy: Delete
-    UpdateReplacePolicy: Delete
+    DeletionPolicy: Retain
+    UpdateReplacePolicy: Retain
     Properties:
       Bucket: !Ref TrailBucket
       PolicyDocument:
