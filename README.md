@@ -70,7 +70,7 @@ resources managed by Terraform:
       deployment_targets:
         organizational_units:
         - Workloads
-      resource_file: TODO
+      resource_file: https://terraform-state-backend-templates.s3.amazonaws.com/branch/main/terraform-state-backend.template
       regions:
       - us-west-2
 
