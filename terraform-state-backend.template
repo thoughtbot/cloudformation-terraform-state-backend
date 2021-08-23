@@ -13,6 +13,10 @@ Parameters:
       Defaults to "terraform-state-AWS_ACCOUNT_ID"
     Default: ""
     Type: String
+  NoncurrentVersionExpirationInDays:
+    Description: Number of days after which older state versions are purged
+    Default: 90
+    Type: Number
 
 Conditions:
   GenerateNames: !Equals
@@ -165,6 +169,11 @@ Resources:
       - GenerateNames
       - !Sub "terraform-state-${AWS::AccountId}"
       - !Ref Name
+      LifecycleConfiguration:
+        Rules:
+        - Id: ExpireOldVersions
+          NoncurrentVersionExpirationInDays: !Ref NoncurrentVersionExpirationInDays
+          Status: Enabled
       PublicAccessBlockConfiguration:
         BlockPublicAcls: true
         BlockPublicPolicy: true
