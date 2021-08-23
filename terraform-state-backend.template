@@ -1,10 +1,16 @@
 ---
 AWSTemplateFormatVersion: "2010-09-09"
 Description: |
+  This Cloudformation template creates an S3 bucket and DynamoDB table suitable
+  for a Terraform S3 State Backend. Using this template avoids the problem of
+  needing to use a Terraform module to create a state backend before you have a
+  state backend for that module.
 
 Parameters:
   Name:
-    Description: Name of the S3 bucket, DynamoDB table, and IAM role
+    Description: |
+      Name of the S3 bucket, DynamoDB table, and IAM role;
+      Defaults to "terraform-state-AWS_ACCOUNT_ID"
     Default: ""
     Type: String
 
