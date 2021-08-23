@@ -5,7 +5,13 @@ Description: |
 Parameters:
   Name:
     Description: Name of the S3 bucket, DynamoDB table, and IAM role
+    Default: ""
     Type: String
+
+Conditions:
+  GenerateNames: !Equals
+  - !Ref Name
+  - ""
 
 Resources:
 
@@ -26,12 +32,15 @@ Resources:
             AWS: !Sub "arn:aws:iam::${AWS::AccountId}:root"
           Action: kms:*
           Resource: '*'
-        - Sid: DenyStateRoleDirectAccess
+        - Sid: DenyDirectAccess
           Effect: Deny
           Principal:
-            AWS: !Sub "arn:aws:iam::${AWS::AccountId}:role/${Name}"
+            AWS: !Sub "arn:aws:iam::${AWS::AccountId}:root"
           Action:
-          - kms:*
+          - kms:Encrypt
+          - kms:Decrypt
+          - kms:ReEncrypt*
+          - kms:GenerateDataKey*
           Resource: '*'
           Condition:
             StringNotEquals:
@@ -53,7 +62,7 @@ Resources:
   KMSKeyAlias:
     Type: AWS::KMS::Alias
     Properties:
-      AliasName: !Sub "alias/${Name}"
+      AliasName: !Sub "alias/${StateBucket}"
       TargetKeyId: !GetAtt KMSKey.Arn
 
   LockTable:
@@ -72,7 +81,7 @@ Resources:
         KMSMasterKeyId: !Ref KMSKey
         SSEEnabled: true
         SSEType: KMS
-      TableName: !Ref Name
+      TableName: !Ref StateBucket
     Metadata:
       cfn_nag:
         rules_to_suppress:
@@ -126,7 +135,7 @@ Resources:
             - kms:GenerateDataKeyWithoutPlaintext
             Resource: !GetAtt KMSKey.Arn
         PolicyName: ManageTerraformState
-      RoleName: !Ref Name
+      RoleName: !Ref StateBucket
 
   StateBucket:
     Type: AWS::S3::Bucket
@@ -139,7 +148,10 @@ Resources:
           - ServerSideEncryptionByDefault:
               SSEAlgorithm: aws:kms
               KMSMasterKeyID: !Ref KMSKey
-      BucketName: !Ref Name
+      BucketName: !If
+      - GenerateNames
+      - !Sub "terraform-state-${AWS::AccountId}"
+      - !Ref Name
       PublicAccessBlockConfiguration:
         BlockPublicAcls: true
         BlockPublicPolicy: true
@@ -183,7 +195,7 @@ Resources:
       - DataResources:
         - Type: AWS::S3::Object
           Values:
-          - !Sub "arn:aws:s3:::${Name}/"
+          - !Sub "arn:aws:s3:::${StateBucket}/"
         IncludeManagementEvents: false
         ReadWriteType: All
       IncludeGlobalServiceEvents: false

@@ -14,7 +14,8 @@ Features:
 
 Parameters:
 
-* __`Name`__: Name of the S3 bucket, DynamoDB table, and IAM role.
+* __`Name`__: Name of the S3 bucket, DynamoDB table, and IAM role. If not
+  specified, names will be generated based on the AWS account ID.
 
 Resources:
 
