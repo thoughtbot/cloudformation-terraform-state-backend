@@ -2,12 +2,12 @@
 
 default: .lint .nag
 
-.lint: backend.template
-	cfn-lint backend.template
+.lint: terraform-state-backend.template
+	cfn-lint terraform-state-backend.template
 	touch .lint
 
-.nag: backend.template
-	cfn_nag --fail-on-warnings --blacklist-path ignorelist.yaml backend.template
+.nag: terraform-state-backend.template
+	cfn_nag --fail-on-warnings --blacklist-path ignorelist.yaml terraform-state-backend.template
 	touch .nag
 
 clean:
