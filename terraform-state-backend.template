@@ -17,6 +17,15 @@ Parameters:
     Description: Number of days after which older state versions are purged
     Default: 90
     Type: Number
+  LogsArchiveInDays:
+    Description: Number of days after which logs are moved to glacier storage
+    Default: 30
+    Type: Number
+  LogsDeleteInDays:
+    Description: Number of days after which logs are deleted
+    Default: 365
+    Type: Number
+
 
 Conditions:
   GenerateNames: !Equals
@@ -236,6 +245,14 @@ Resources:
           - ServerSideEncryptionByDefault:
               SSEAlgorithm: aws:kms
               KMSMasterKeyID: !Ref KMSKey
+      LifecycleConfiguration:
+        Rules:
+        - Id: OlderLogsInGlacier
+          ExpirationInDays: !Ref LogsDeleteInDays
+          Status: Enabled
+          Transitions:
+          - TransitionInDays: !Ref LogsArchiveInDays
+            StorageClass: GLACIER
       PublicAccessBlockConfiguration:
         BlockPublicAcls: true
         BlockPublicPolicy: true
