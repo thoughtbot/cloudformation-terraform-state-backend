@@ -21,6 +21,12 @@ state backend for that module.
 
 * __`Name`__: Name of the S3 bucket, DynamoDB table, and IAM role. If not
   specified, names will be generated based on the AWS account ID.
+* __`NoncurrentVersionExpirationInDays`__ (`Number`): Number of days after which
+  older state versions are purged; defaults to 90.
+* __`LogsArchiveInDays`__ (`Number`): Number of days after which logs are moved
+  to glacier storage; defaults to 30.
+* __`LogsDeleteInDays`__ (`Number`): Number of days after which logs are
+  deleted; defaults to 365.
 
 ### Resources:
 
