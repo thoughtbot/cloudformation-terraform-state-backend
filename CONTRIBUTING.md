@@ -54,7 +54,7 @@ Here are some ways *you* can contribute:
 2. Run `make` to validate your changes.
 3. Deploy the stack to a test account to make sure it works.
 
-[repo]: https://github.com/thoughtbot/cloudformation-terraform-state-backend/tree/master
+[repo]: https://github.com/thoughtbot/cloudformation-terraform-state-backend/tree/main
 [fork]: https://help.github.com/articles/fork-a-repo/
 [branch]: https://help.github.com/articles/creating-and-deleting-branches-within-your-repository/
 [pr]: https://help.github.com/articles/using-pull-requests/
