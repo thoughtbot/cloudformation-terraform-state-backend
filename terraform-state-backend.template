@@ -32,11 +32,15 @@ Resources:
         Version: "2012-10-17"
         Id: backend
         Statement:
-        - Sid: EnableIAMUserPermissions
+        - Sid: EnableKeyManagement
           Effect: Allow
           Principal:
             AWS: !Sub "arn:aws:iam::${AWS::AccountId}:root"
-          Action: kms:*
+          NotAction:
+          - kms:Encrypt
+          - kms:Decrypt
+          - kms:ReEncrypt*
+          - kms:GenerateDataKey*
           Resource: '*'
         - Sid: DenyDirectAccess
           Effect: Deny
