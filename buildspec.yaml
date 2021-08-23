@@ -1,0 +1,24 @@
+---
+version: 0.2
+
+env:
+  shell: bash
+
+phases:
+  install:
+    commands:
+    - pip install cfn-lint
+    - gem install cfn-nag
+
+  pre_build:
+    commands:
+    - VERSION="${CODEBUILD_WEBHOOK_TRIGGER:-HEAD}"
+
+  build:
+    commands:
+    - make
+
+artifacts:
+  files:
+  - "*.template"
+  name: $VERSION
