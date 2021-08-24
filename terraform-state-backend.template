@@ -25,12 +25,15 @@ Parameters:
     Description: Number of days after which logs are deleted
     Default: 365
     Type: Number
+  LogsObjectLockInDays:
+    Description: Number of days for which log objects are locked
+    Default: 30
+    Type: Number
 
 
 Conditions:
-  GenerateNames: !Equals
-  - !Ref Name
-  - ""
+  GenerateNames: !Equals [!Ref Name, ""]
+  ObjectLockEnabled: !Not [!Equals [!Ref LogsObjectLockInDays, 0]]
 
 Resources:
 
@@ -220,6 +223,8 @@ Resources:
     Type: AWS::CloudTrail::Trail
     DeletionPolicy: Retain
     UpdateReplacePolicy: Retain
+    DependsOn:
+    - TrailBucketPolicy
     Properties:
       EnableLogFileValidation: true
       EventSelectors:
@@ -253,6 +258,15 @@ Resources:
           Transitions:
           - TransitionInDays: !Ref LogsArchiveInDays
             StorageClass: GLACIER
+      ObjectLockEnabled: !If [ObjectLockEnabled, true, false]
+      ObjectLockConfiguration: !If
+        - ObjectLockEnabled
+        - ObjectLockEnabled: Enabled
+          Rule:
+            DefaultRetention:
+              Days: 30
+              Mode: GOVERNANCE
+        - {}
       PublicAccessBlockConfiguration:
         BlockPublicAcls: true
         BlockPublicPolicy: true
