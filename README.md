@@ -27,6 +27,9 @@ state backend for that module.
   to glacier storage; defaults to 30.
 * __`LogsDeleteInDays`__ (`Number`): Number of days after which logs are
   deleted; defaults to 365.
+* __`LogsObjectLockInDays`__ (`Number`): Number of days for which log objects
+  are locked, preventing user deletion or tempering; defaults to 30. If you
+  don't want to enable object lock, set this value to 0.
 
 ### Resources:
 
