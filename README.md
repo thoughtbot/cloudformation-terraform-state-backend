@@ -83,7 +83,7 @@ resources managed by Terraform:
       deployment_targets:
         organizational_units:
         - Workloads
-      resource_file: https://terraform-state-backend-templates.s3.amazonaws.com/branch/main/terraform-state-backend.template
+      resource_file: https://s3.us-east-1.amazonaws.com/terraform-state-backend-templates/branch/main/terraform-state-backend.template
       regions:
       - us-west-2
 
