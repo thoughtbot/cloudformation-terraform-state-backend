@@ -29,11 +29,18 @@ Parameters:
     Description: Number of days for which log objects are locked
     Default: 30
     Type: Number
+  RoleTrustPrincipal:
+    Description: |
+      IAM principal allowed to assume the state management role; defaults to the
+      current AWS account.
+    Default: ""
+    Type: String
 
 
 Conditions:
   GenerateNames: !Equals [!Ref Name, ""]
   ObjectLockEnabled: !Not [!Equals [!Ref LogsObjectLockInDays, 0]]
+  UseDefaultTrustPrincipal: !Equals [!Ref RoleTrustPrincipal, ""]
 
 Resources:
 
@@ -122,7 +129,10 @@ Resources:
         Statement:
           - Effect: Allow
             Principal:
-              AWS: !Sub "arn:aws:iam::${AWS::AccountId}:root"
+              AWS: !If
+              - UseDefaultTrustPrincipal
+              - !Sub "arn:aws:iam::${AWS::AccountId}:root"
+              - !Ref RoleTrustPrincipal
             Action:
               - "sts:AssumeRole"
       Description: Role to manage Terraform state

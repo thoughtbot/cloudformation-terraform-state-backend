@@ -30,6 +30,9 @@ state backend for that module.
 * __`LogsObjectLockInDays`__ (`Number`): Number of days for which log objects
   are locked, preventing user deletion or tempering; defaults to 30. If you
   don't want to enable object lock, set this value to 0.
+* __`RoleTrustPrincipal`__ (`String`): ARN of the role, account, or user which
+  is allowed to assume the state management role; if blank, defaults to the
+  current AWS account.
 
 ### Resources:
 
@@ -76,6 +79,7 @@ resources managed by Terraform:
 
     - name: TerraformStateBackend
       description: Create a Terraform state backend in each account
+      deploy_method: stack_set
       deployment_targets:
         organizational_units:
         - Workloads
