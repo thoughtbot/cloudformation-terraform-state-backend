@@ -65,8 +65,8 @@ Resources:
           - kms:ReEncrypt*
           - kms:GenerateDataKey*
           Resource: '*'
-        - Sid: DenyDirectAccess
-          Effect: Deny
+        - Sid: AllowStateBackend
+          Effect: Allow
           Principal:
             AWS: !Sub "arn:aws:iam::${AWS::AccountId}:root"
           Action:
@@ -76,7 +76,7 @@ Resources:
           - kms:GenerateDataKey*
           Resource: '*'
           Condition:
-            StringNotEquals:
+            StringEquals:
               "kms:ViaService":
               - !Sub "s3.${AWS::Region}.amazonaws.com"
               - !Sub "dynamodb.${AWS::Region}.amazonaws.com"
