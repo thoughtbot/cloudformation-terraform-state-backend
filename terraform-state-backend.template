@@ -35,12 +35,26 @@ Parameters:
       current AWS account.
     Default: ""
     Type: String
-
+  RoleTrustConditionTag:
+    Description: |
+      If Enabled, principals will need to have the tag "TerraformStateBackend"
+      with a value containing RoleTagValue in order to assume the role.
+    Type: String
+    AllowedValues:
+    - Enabled
+    - Disabled
+    Default: Disabled
+  RoleTagValue:
+    Description: Value for the TerraformStateBackend tag; defaults to Name.
+    Type: String
+    Default: ""
 
 Conditions:
   GenerateNames: !Equals [!Ref Name, ""]
   ObjectLockEnabled: !Not [!Equals [!Ref LogsObjectLockInDays, 0]]
   UseDefaultTrustPrincipal: !Equals [!Ref RoleTrustPrincipal, ""]
+  UseDefaultRoleTagValue: !Equals [!Ref RoleTagValue, ""]
+  UseRoleTrustConditionTag: !Equals [!Ref RoleTrustConditionTag, "Enabled"]
 
 Resources:
 
@@ -135,6 +149,20 @@ Resources:
               - !Ref RoleTrustPrincipal
             Action:
               - "sts:AssumeRole"
+            Condition: !If
+            - UseRoleTrustConditionTag
+            - StringLike:
+                "aws:PrincipalTag/TerraformStateBackend": !If
+                - UseDefaultRoleTagValue
+                - !Ref Name
+                - !Ref RoleTagValue
+            - {}
+      Tags:
+      - Key: TerraformStateBackend
+        Value: !If
+        - UseDefaultRoleTagValue
+        - !Ref Name
+        - !Ref RoleTagValue
       Description: Role to manage Terraform state
       Policies:
       - PolicyDocument:

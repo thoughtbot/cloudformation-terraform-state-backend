@@ -33,6 +33,11 @@ state backend for that module.
 * __`RoleTrustPrincipal`__ (`String`): ARN of the role, account, or user which
   is allowed to assume the state management role; if blank, defaults to the
   current AWS account.
+* __`RoleTrustConditionTag`__ (`String`): If `Enabled`, principals will need to
+  have the tag "TerraformStateBackend" with a value containing `RoleTagValue` in
+  order to assume the role.
+* __`RoleTagValue`__ (`String`): Value for the `TerraformStateBackend` tag;
+  defaults to `Name`.
 
 ### Resources:
 
