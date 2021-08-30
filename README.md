@@ -55,6 +55,8 @@ state backend for that module.
   logs
 * __`TrailBucketPolicy`__ (`AWS::S3::BucketPolicy`): policy to allow Cloudtrail
   to write log entries
+* __`TrailLogGroup`__ (`AWS::Logs::LogsGroup`): CloudWatch log group for state
+  Cloudtrail logs
 
 ### Outputs:
 
