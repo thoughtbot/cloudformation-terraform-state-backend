@@ -275,12 +275,11 @@ Resources:
           Effect: Deny
           Action:
           - s3:PutObject
-          Principal:
-            AWS: !Sub "arn:aws:iam::${AWS::AccountId}:root"
+          Principal: "*"
           Resource: !Sub "${StateBucket.Arn}/*"
           Condition:
             StringNotEquals:
-              "s3:x-amz-server-side-encryption-aws-kms-key-id": !Ref KMSKey
+              "s3:x-amz-server-side-encryption-aws-kms-key-id": !GetAtt KMSKey.Arn
 
   StateTrail:
     Type: AWS::CloudTrail::Trail
