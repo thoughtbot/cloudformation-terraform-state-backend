@@ -25,6 +25,20 @@ Parameters:
     Description: Number of days after which logs are deleted
     Default: 365
     Type: Number
+  LogsGroup:
+    Description: Set to Disabled to disable the Cloudwatch log group
+    Type: String
+    AllowedValues:
+    - Disabled
+    - Enabled
+    Default: Enabled
+  LogsS3Bucket:
+    Description: Set to Enabled to write logs to an S3 bucket
+    Type: String
+    AllowedValues:
+    - Disabled
+    - Enabled
+    Default: Disabled
   LogsObjectLockInDays:
     Description: Number of days for which log objects are locked
     Default: 30
@@ -54,6 +68,8 @@ Conditions:
   ObjectLockEnabled: !Not [!Equals [!Ref LogsObjectLockInDays, 0]]
   UseDefaultTrustPrincipal: !Equals [!Ref RoleTrustPrincipal, ""]
   UseDefaultRoleTagValue: !Equals [!Ref RoleTagValue, ""]
+  UseLogGroup: !Equals [!Ref LogsGroup, "Enabled"]
+  UseLoggingBucket: !Equals [!Ref LogsS3Bucket, "Enabled"]
   UseRoleTrustConditionTag: !Equals [!Ref RoleTrustConditionTag, "Enabled"]
 
 Resources:
@@ -105,6 +121,23 @@ Resources:
             StringLike:
               "kms:EncryptionContext:aws:cloudtrail:arn":
               - !Sub "arn:aws:cloudtrail:*:${AWS::AccountId}:trail/*"
+        - Sid: AllowCloudWatchLogs
+          Effect: Allow
+          Principal:
+            Service: !Sub "logs.${AWS::Region}.amazonaws.com"
+          Action:
+          - kms:Decrypt*
+          - kms:Describe*
+          - kms:Encrypt*
+          - kms:GenerateDataKey*
+          - kms:ReEncrypt*
+          Resource: "*"
+          Condition:
+            ArnEquals:
+              "kms:EncryptionContext:aws:logs:arn": !If
+              - GenerateNames
+              - !Sub "arn:aws:logs:${AWS::Region}:${AWS::AccountId}:log-group:terraform-state-${AWS::AccountId}"
+              - !Sub "arn:aws:logs:${AWS::Region}:${AWS::AccountId}:log-group:${Name}"
 
   KMSKeyAlias:
     Type: AWS::KMS::Alias
@@ -261,8 +294,6 @@ Resources:
     Type: AWS::CloudTrail::Trail
     DeletionPolicy: Retain
     UpdateReplacePolicy: Retain
-    DependsOn:
-    - TrailBucketPolicy
     Properties:
       EnableLogFileValidation: true
       EventSelectors:
@@ -275,10 +306,14 @@ Resources:
       IncludeGlobalServiceEvents: false
       IsLogging: true
       KMSKeyId: !GetAtt KMSKey.Arn
-      S3BucketName: !Ref TrailBucket
+      S3BucketName: !If
+      - UseLoggingBucket
+      - !Ref TrailBucket
+      - !Ref "AWS::NoValue"
 
   TrailBucket:
     Type: AWS::S3::Bucket
+    Condition: UseLoggingBucket
     DeletionPolicy: Retain
     UpdateReplacePolicy: Retain
     Properties:
@@ -318,6 +353,7 @@ Resources:
 
   TrailBucketPolicy:
     Type: AWS::S3::BucketPolicy
+    Condition: UseLoggingBucket
     DeletionPolicy: Retain
     UpdateReplacePolicy: Retain
     Properties:
@@ -342,6 +378,19 @@ Resources:
           Condition:
             StringEquals:
               "s3:x-amz-acl": "bucket-owner-full-control"
+
+  TrailLogGroup:
+    Type: AWS::Logs::LogGroup
+    Condition: UseLogGroup
+    DeletionPolicy: Retain
+    UpdateReplacePolicy: Retain
+    Properties:
+      KmsKeyId: !GetAtt KMSKey.Arn
+      LogGroupName: !If
+      - GenerateNames
+      - !Sub "terraform-state-${AWS::AccountId}"
+      - !Ref Name
+      RetentionInDays: !Ref LogsDeleteInDays
 
 Outputs:
   KmsKeyAlias:
