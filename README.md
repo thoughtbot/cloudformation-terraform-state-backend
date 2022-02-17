@@ -10,62 +10,52 @@ for a [Terraform S3 State Backend]. Using this template avoids the problem of
 needing to use a Terraform module to create a state backend before you have a
 state backend for that module.
 
-### Features:
+### Features
 
 * Encrypts Terraform state using a dedicated KMS key.
 * Creates a dedicated IAM role with only the permissions needed to manage
   Terraform state.
 * Sets up access logging for the state bucket using CloudTrail.
 
-### Parameters:
+### Parameters
 
-* __`Name`__: Name of the S3 bucket, DynamoDB table, and IAM role. If not
-  specified, names will be generated based on the AWS account ID.
-* __`NoncurrentVersionExpirationInDays`__ (`Number`): Number of days after which
-  older state versions are purged; defaults to 90.
-* __`LogsArchiveInDays`__ (`Number`): Number of days after which logs are moved
-  to glacier storage; defaults to 30.
-* __`LogsDeleteInDays`__ (`Number`): Number of days after which logs are
-  deleted; defaults to 365.
-* __`LogsObjectLockInDays`__ (`Number`): Number of days for which log objects
-  are locked, preventing user deletion or tempering; defaults to 30. If you
-  don't want to enable object lock, set this value to 0.
-* __`RoleTrustPrincipal`__ (`String`): ARN of the role, account, or user which
-  is allowed to assume the state management role; if blank, defaults to the
-  current AWS account.
-* __`RoleTrustConditionTag`__ (`String`): If `Enabled`, principals will need to
-  have the tag "TerraformStateBackend" with a value containing `RoleTagValue` in
-  order to assume the role.
-* __`RoleTagValue`__ (`String`): Value for the `TerraformStateBackend` tag;
-  defaults to `Name`.
+* __`AdminConditionTag`__ (`String`): If Enabled, principals will need to have the tag "Repository" with a value containing Repository in order to assume the role.
+* __`AdminPrincipal`__ (`String`): IAM principal allowed to assume the state management role as a human operator; defaults to the current AWS account.
+* __`ExecutionConditionTag`__ (`String`): If Enabled, principals will need to have the tag "Repository" with a value containing Repository in order to assume the role.
+* __`ExecutionPrincipal`__ (`String`): IAM principal allowed to assume the state management for running Terraform; defaults to the current AWS account.
+* __`LogsArchiveInDays`__ (`Number`): Number of days after which logs are moved to glacier storage
+* __`LogsDeleteInDays`__ (`Number`): Number of days after which logs are deleted
+* __`LogsGroup`__ (`String`): Set to Disabled to disable the Cloudwatch log group
+* __`LogsObjectLockInDays`__ (`Number`): Number of days for which log objects are locked
+* __`Name`__ (`String`): Name of the S3 bucket, DynamoDB table, and IAM role; Defaults to "terraform-state-AWS_ACCOUNT_ID"
+* __`NoncurrentVersionExpirationInDays`__ (`Number`): Number of days after which older state versions are purged
+* __`Repository`__ (`String`): Value for the Repository tag; defaults to Name.
+* __`SSOPermissionSet`__ (`String`): If provided, IAM roles created from this permission set will be allowed to access Terraform state.
+* __`StateVpcId`__ (`String`): If provided, state can access only from the given VPC.
 
-### Resources:
+### Resources
 
 * __`KMSKey`__ (`AWS::KMS::Key`): KMS key used to encrypt Terraform state
-* __`KMSKeyAlias`__ (`AWS::KMS::Alias`): alias for the KMS key
+* __`KMSKeyAlias`__ (`AWS::KMS::Alias`): Alias for the KMS key
 * __`LockTable`__ (`AWS::DynamoDB::Table`): DynamoDB table to lock Terraform
-  state
 * __`Role`__ (`AWS::IAM::Role`): IAM role for managing Terraform state
 * __`StateBucket`__ (`AWS::S3::Bucket`): Bucket containing Terraform state
 * __`StateBucketPolicy`__ (`AWS::S3::BucketPolicy`): Policy requiring encryption
-  for Terraform state
 * __`StateTrail`__ (`AWS::CloudTrail::Trail`): trail logging data events for
-  the Terraform state bucket
-* __`TrailBucket`__ (`AWS::S3::Bucket`): bucket for Terraform state Cloudtrail
-  logs
-* __`TrailBucketPolicy`__ (`AWS::S3::BucketPolicy`): policy to allow Cloudtrail
-  to write log entries
-* __`TrailLogGroup`__ (`AWS::Logs::LogsGroup`): CloudWatch log group for state
-  Cloudtrail logs
+* __`TrailBucket`__ (`AWS::S3::Bucket`): Bucket for Terraform state Cloudtrail
+* __`TrailBucketPolicy`__ (`AWS::S3::BucketPolicy`): Policy to allow Cloudtrail
+* __`TrailLogGroup`__ (`AWS::Logs::LogGroup`): CloudWatch log group for state changes
+* __`TrailRole`__ (`AWS::IAM::Role`): IAM role assumed by CloudTrail to write state logs
 
-### Outputs:
+### Outputs
 
-* __`KmsKeyAlias`__: Alias of the KMS key used to encrypt Terraform state.
-* __`KmsKeyId`__: ID of the KMS key used to encrypt Terraform state.
-* __`LockTableName`__: Name of the DynamoDB table used to lock Terraform state.
-* __`Region`__: Region in which the S3 state backend resources are created.
-* __`RoleArn`__: ARN of the IAM role capable of managing Terraform state.
-* __`StateBucketName`__: Name of the S3 bucket containing Terraform state.
+* __`KmsKeyAlias`__: Alias of the KMS key used to encrypt Terraform state
+* __`KmsKeyId`__: ID of the KMS key used to encrypt Terraform state
+* __`LockTableName`__: Name of the DynamoDB table used to lock Terraform state
+* __`LogGroup`__: CloudWatch log group for state changes
+* __`Region`__: Region in which the S3 state backend resources are created
+* __`RoleArn`__: ARN of the IAM role capable of managing Terraform state
+* __`StateBucketName`__: Name of the S3 bucket containing Terraform state
 
 ### Capabilities:
 

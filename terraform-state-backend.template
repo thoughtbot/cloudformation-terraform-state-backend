@@ -36,33 +36,63 @@ Parameters:
     Description: Number of days for which log objects are locked
     Default: 30
     Type: Number
-  RoleTrustPrincipal:
+  AdminPrincipal:
     Description: |
-      IAM principal allowed to assume the state management role; defaults to the
-      current AWS account.
+      IAM principal allowed to assume the state management role as a human
+      operator; defaults to the current AWS account.
     Default: ""
     Type: String
-  RoleTrustConditionTag:
+  AdminConditionTag:
     Description: |
-      If Enabled, principals will need to have the tag "TerraformStateBackend"
-      with a value containing RoleTagValue in order to assume the role.
+      If Enabled, principals will need to have the tag "Repository"
+      with a value containing Repository in order to assume the role.
     Type: String
     AllowedValues:
     - Enabled
     - Disabled
     Default: Disabled
-  RoleTagValue:
-    Description: Value for the TerraformStateBackend tag; defaults to Name.
+  ExecutionPrincipal:
+    Description: |
+      IAM principal allowed to assume the state management for running
+      Terraform; defaults to the current AWS account.
+    Default: ""
+    Type: String
+  ExecutionConditionTag:
+    Description: |
+      If Enabled, principals will need to have the tag "Repository"
+      with a value containing Repository in order to assume the role.
+    Type: String
+    AllowedValues:
+    - Enabled
+    - Disabled
+    Default: Disabled
+  SSOPermissionSet:
+    Description: |
+      If provided, IAM roles created from this permission set will be allowed to
+      access Terraform state.
+    Type: String
+    Default: ""
+  StateVpcId:
+    Description: |
+      If provided, state can access only from the given VPC.
+    Type: String
+    Default: ""
+  Repository:
+    Description: Value for the Repository tag; defaults to Name.
     Type: String
     Default: ""
 
 Conditions:
   GenerateNames: !Equals [!Ref Name, ""]
   ObjectLockEnabled: !Not [!Equals [!Ref LogsObjectLockInDays, 0]]
-  UseDefaultTrustPrincipal: !Equals [!Ref RoleTrustPrincipal, ""]
-  UseDefaultRoleTagValue: !Equals [!Ref RoleTagValue, ""]
+  SkipAdminPrincipal: !Equals [!Ref AdminPrincipal, ""]
+  SkipSSOPermissionSet: !Equals [!Ref SSOPermissionSet, ""]
+  SkipVpc: !Equals [!Ref StateVpcId, ""]
+  UseDefaultExecutionPrincipal: !Equals [!Ref ExecutionPrincipal, ""]
+  UseDefaultRoleTagValue: !Equals [!Ref Repository, ""]
+  UseExecutionConditionTag: !Equals [!Ref ExecutionConditionTag, "Enabled"]
   UseLogGroup: !Equals [!Ref LogsGroup, "Enabled"]
-  UseRoleTrustConditionTag: !Equals [!Ref RoleTrustConditionTag, "Enabled"]
+  UseAdminConditionTag: !Equals [!Ref AdminConditionTag, "Enabled"]
 
 Resources:
 
@@ -77,10 +107,13 @@ Resources:
         Version: "2012-10-17"
         Id: backend
         Statement:
-        - Sid: EnableKeyManagement
+        - Sid: EnableAdminManagement
           Effect: Allow
           Principal:
-            AWS: !Sub "arn:aws:iam::${AWS::AccountId}:root"
+            AWS: !If
+            - SkipAdminPrincipal
+            - !Sub "arn:aws:iam::${AWS::AccountId}:root"
+            - !Ref AdminPrincipal
           NotAction:
           - kms:Encrypt
           - kms:Decrypt
@@ -130,12 +163,16 @@ Resources:
               - GenerateNames
               - !Sub "arn:aws:logs:${AWS::Region}:${AWS::AccountId}:log-group:terraform-state-${AWS::AccountId}"
               - !Sub "arn:aws:logs:${AWS::Region}:${AWS::AccountId}:log-group:${Name}"
+    Metadata:
+      Description: KMS key used to encrypt Terraform state
 
   KMSKeyAlias:
     Type: AWS::KMS::Alias
     Properties:
       AliasName: !Sub "alias/${StateBucket}"
       TargetKeyId: !GetAtt KMSKey.Arn
+    Metadata:
+      Description: Alias for the KMS key
 
   LockTable:
     Type: AWS::DynamoDB::Table
@@ -159,6 +196,7 @@ Resources:
         rules_to_suppress:
           - id: W78
             reason: Terraform lock tables do not need to be backed up
+      Description: DynamoDB table to lock Terraform
 
   Role:
     Type: AWS::IAM::Role
@@ -166,28 +204,58 @@ Resources:
       AssumeRolePolicyDocument:
         Version: "2012-10-17"
         Statement:
-          - Effect: Allow
+          - Sid: AllowExecution
+            Effect: Allow
             Principal:
               AWS: !If
-              - UseDefaultTrustPrincipal
+              - UseDefaultExecutionPrincipal
               - !Sub "arn:aws:iam::${AWS::AccountId}:root"
-              - !Ref RoleTrustPrincipal
+              - !Ref ExecutionPrincipal
             Action:
               - "sts:AssumeRole"
             Condition: !If
-            - UseRoleTrustConditionTag
+            - UseExecutionConditionTag
             - StringLike:
-                "aws:PrincipalTag/TerraformStateBackend": !If
+                "aws:PrincipalTag/Repository": !If
                 - UseDefaultRoleTagValue
                 - !Ref Name
-                - !Ref RoleTagValue
+                - !Ref Repository
             - {}
+          - !If
+            - SkipAdminPrincipal
+            - !Ref AWS::NoValue
+            - Sid: AllowAdmins
+              Effect: Allow
+              Principal: !Ref AdminPrincipal
+              Action:
+                - "sts:AssumeRole"
+              Condition: !If
+              - UseAdminConditionTag
+              - StringLike:
+                  "aws:PrincipalTag/Repository": !If
+                  - UseDefaultRoleTagValue
+                  - !Ref Name
+                  - !Ref Repository
+              - {}
+          - !If
+            - SkipSSOPermissionSet
+            - !Ref AWS::NoValue
+            - Sid: AllowSSOPermissionSet
+              Effect: Allow
+              Principal:
+                AWS: !Sub "arn:aws:iam::${AWS::AccountId}:root"
+              Action:
+                - "sts:AssumeRole"
+              Condition:
+                ArnLike:
+                  "aws:PrincipalArn":
+                  - !Sub "arn:aws:iam::${AWS::AccountId}:role/aws-reserved/sso.amazonaws.com/${AWS::Region}/AWSReservedSSO_${SSOPermissionSet}_*"
       Tags:
-      - Key: TerraformStateBackend
+      - Key: Repository
         Value: !If
         - UseDefaultRoleTagValue
         - !Ref Name
-        - !Ref RoleTagValue
+        - !Ref Repository
       Description: Role to manage Terraform state
       Policies:
       - PolicyDocument:
@@ -228,6 +296,8 @@ Resources:
       - GenerateNames
       - !Sub "terraform-state-${AWS::AccountId}"
       - !Ref Name
+    Metadata:
+      Description: IAM role for managing Terraform state
 
   StateBucket:
     Type: AWS::S3::Bucket
@@ -257,6 +327,7 @@ Resources:
       VersioningConfiguration:
         Status: Enabled
     Metadata:
+      Description: Bucket containing Terraform state
       cfn_nag:
         rules_to_suppress:
           - id: W35
@@ -280,6 +351,21 @@ Resources:
           Condition:
             StringNotEquals:
               "s3:x-amz-server-side-encryption-aws-kms-key-id": !GetAtt KMSKey.Arn
+        - !If
+          - SkipVpc
+          - !Ref AWS::NoValue
+          - Sid: RequireVpcAccess
+            Effect: Deny
+            Principal: "*"
+            Resource: !Sub "${StateBucket.Arn}/*"
+            Action:
+            - s3:*
+            Condition:
+              StringNotEquals:
+                aws:SourceVpc:
+                  !Ref StateVpcId
+    Metadata:
+      Description: Policy requiring encryption
 
   StateTrail:
     Type: AWS::CloudTrail::Trail
@@ -291,11 +377,11 @@ Resources:
       CloudWatchLogsLogGroupArn: !If
       - UseLogGroup
       - !GetAtt TrailLogGroup.Arn
-      - !Ref "AWS::NoValue"
+      - !Ref AWS::NoValue
       CloudWatchLogsRoleArn: !If
       - UseLogGroup
       - !GetAtt TrailRole.Arn
-      - !Ref "AWS::NoValue"
+      - !Ref AWS::NoValue
       EnableLogFileValidation: true
       EventSelectors:
       - DataResources:
@@ -308,6 +394,8 @@ Resources:
       IsLogging: true
       KMSKeyId: !GetAtt KMSKey.Arn
       S3BucketName: !Ref TrailBucket
+    Metadata:
+      Description: trail logging data events for
 
   TrailBucket:
     Type: AWS::S3::Bucket
@@ -343,6 +431,7 @@ Resources:
         IgnorePublicAcls: true
         RestrictPublicBuckets: true
     Metadata:
+      Description: Bucket for Terraform state Cloudtrail
       cfn_nag:
         rules_to_suppress:
           - id: W35
@@ -374,6 +463,8 @@ Resources:
           Condition:
             StringEquals:
               "s3:x-amz-acl": "bucket-owner-full-control"
+    Metadata:
+      Description: Policy to allow Cloudtrail
 
   TrailLogGroup:
     Type: AWS::Logs::LogGroup
@@ -387,6 +478,8 @@ Resources:
       - !Sub "terraform-state-${AWS::AccountId}"
       - !Ref Name
       RetentionInDays: !Ref LogsDeleteInDays
+    Metadata:
+      Description: CloudWatch log group for state changes
 
   TrailRole:
     Type: AWS::IAM::Role
@@ -414,6 +507,8 @@ Resources:
             - logs:PutLogEvents
             Resource: !GetAtt TrailLogGroup.Arn
         PolicyName: WriteStateLogs
+    Metadata:
+      Description: IAM role assumed by CloudTrail to write state logs
 
 Outputs:
   KmsKeyAlias:

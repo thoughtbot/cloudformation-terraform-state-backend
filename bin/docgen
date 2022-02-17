@@ -1,0 +1,9 @@
+#!/bin/sh
+
+set -e
+
+yamltojson() {
+  ruby -ryaml -rjson -e 'puts JSON.dump(YAML.load(STDIN.read))'
+}
+
+cat *.template | yamltojson | jq -rf bin/docgen.jq
