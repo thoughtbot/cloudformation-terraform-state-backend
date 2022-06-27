@@ -249,7 +249,7 @@ Resources:
               Condition:
                 ArnLike:
                   "aws:PrincipalArn":
-                  - !Sub "arn:aws:iam::${AWS::AccountId}:role/aws-reserved/sso.amazonaws.com/${AWS::Region}/AWSReservedSSO_${SSOPermissionSet}_*"
+                  - !Sub "arn:aws:iam::${AWS::AccountId}:role/aws-reserved/sso.amazonaws.com/AWSReservedSSO_${SSOPermissionSet}_*"
       Tags:
       - Key: Repository
         Value: !If
