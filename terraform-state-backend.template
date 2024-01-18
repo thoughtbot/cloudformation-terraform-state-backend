@@ -186,6 +186,8 @@ Resources:
       KeySchema:
       - AttributeName: LockID
         KeyType: HASH
+      PointInTimeRecoverySpecification:
+        PointInTimeRecoveryEnabled: true
       SSESpecification:
         KMSMasterKeyId: !Ref KMSKey
         SSEEnabled: true
