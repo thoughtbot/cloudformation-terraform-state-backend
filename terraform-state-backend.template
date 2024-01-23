@@ -188,6 +188,8 @@ Resources:
         KeyType: HASH
       PointInTimeRecoverySpecification:
         PointInTimeRecoveryEnabled: true
+      ContributorInsightsSpecification:
+        Enabled: true
       SSESpecification:
         KMSMasterKeyId: !Ref KMSKey
         SSEEnabled: true
